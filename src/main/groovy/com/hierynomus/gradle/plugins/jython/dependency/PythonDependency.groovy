@@ -18,7 +18,6 @@ package com.hierynomus.gradle.plugins.jython.dependency
 import org.gradle.api.artifacts.Dependency
 import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.internal.artifacts.dependencies.AbstractExternalModuleDependency
-import org.gradle.util.ConfigureUtil
 
 import static org.gradle.api.internal.artifacts.DefaultModuleIdentifier.newId
 
@@ -60,11 +59,12 @@ class PythonDependency extends AbstractExternalModuleDependency {
 
     static PythonDependency create(depInfo, closure) {
         PythonDependency dep = create(depInfo)
-        ConfigureUtil.configure(closure, dep)
+        closure.delegate = dep
+        closure.resolveStrategy = Closure.DELEGATE_FIRST
+        closure.call()
         return dep
     }
 
-    @Override
     boolean contentEquals(Dependency dependency) {
         if(this == dependency) {
             return true;
@@ -78,7 +78,7 @@ class PythonDependency extends AbstractExternalModuleDependency {
 
     PythonDependency copy(Closure c) {
         def ca = new CopiedArtifact()
-        ConfigureUtil.configure(c, ca)
+        ca.with(c)
         this.toCopy.add(ca)
         this
     }

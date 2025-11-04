@@ -18,7 +18,8 @@ package com.hierynomus.gradle.plugins.jython.repository
 import com.hierynomus.gradle.plugins.jython.JythonExtension
 import groovy.text.SimpleTemplateEngine
 import groovy.text.Template
-import groovy.util.slurpersupport.GPathResult
+import groovy.xml.XmlSlurper
+import groovy.xml.slurpersupport.GPathResult
 import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
