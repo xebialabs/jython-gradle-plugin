@@ -23,7 +23,6 @@ import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 import org.gradle.api.Project
 import org.gradle.api.logging.Logging
-import org.gradle.util.ConfigureUtil
 
 import java.nio.file.Files
 

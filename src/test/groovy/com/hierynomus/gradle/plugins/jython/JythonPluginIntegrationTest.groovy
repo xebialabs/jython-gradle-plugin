@@ -17,19 +17,20 @@ package com.hierynomus.gradle.plugins.jython
 
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.TaskOutcome
-import org.junit.Rule
-import org.junit.rules.TemporaryFolder
 import spock.lang.Specification
+import spock.lang.TempDir
 import spock.lang.Unroll
+
+import java.nio.file.Path
 
 class JythonPluginIntegrationTest extends Specification {
 
-    @Rule
-    final TemporaryFolder testProjectDir = new TemporaryFolder()
+    @TempDir
+    Path testProjectDir
     File buildFile
 
     def setup() {
-        buildFile = testProjectDir.newFile('build.gradle')
+        buildFile = new File(testProjectDir.toFile(), 'build.gradle')
     }
 
     @Unroll
@@ -48,7 +49,7 @@ dependencies {
         when:
         def result = GradleRunner.create()
                 .withGradleVersion(gradleVersion)
-                .withProjectDir(testProjectDir.root)
+                .withProjectDir(testProjectDir.toFile())
                 .withPluginClasspath()
                 .withArguments('-i', '-s', '-d', 'jythonDownload')
                 .build()
@@ -59,15 +60,8 @@ dependencies {
 
         where:
         gradleVersion | dep
-        '2.11'        | ':boto3:1.1.3'
-        '2.11'        | ':docker:2.0.0'
-        '2.12'        | ':boto3:1.1.3'
-        '2.12'        | ':docker:2.0.0'
-        '3.5'         | ':docker:2.0.0'
-        '4.9'         | ':boto3:1.1.3'
-        '4.9'         | ':docker:2.0.0'
-        '5.2.1'       | ':boto3:1.1.3'
-        '5.2.1'       | ':docker:2.0.0'
+        '9.0'         | ':boto3:1.1.3'
+        '9.0'         | ':docker:2.0.0'
     }
 
     @Unroll
@@ -96,7 +90,7 @@ dependencies {
         when:
         def result = GradleRunner.create()
                                  .withGradleVersion(gradleVersion)
-                                 .withProjectDir(testProjectDir.root)
+                                 .withProjectDir(testProjectDir.toFile())
                                  .withPluginClasspath()
                                  .withArguments('-i', '-s', '-d', 'jythonDownload')
                                  .build()
@@ -106,11 +100,11 @@ dependencies {
         result.task(":jythonDownload").outcome == TaskOutcome.SUCCESS
 
         and:
-        def m = testProjectDir.newFolder("build", "jython", "main")
+        def m = new File(testProjectDir.toFile(), "build/jython/main")
         new File(m, "six.py").exists()
         new File(m, "isodate").isDirectory()
 
         where:
-        gradleVersion << ['4.9', '5.2.1']
+        gradleVersion << ['9.0']
     }
 }

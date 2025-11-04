@@ -20,7 +20,6 @@ import com.hierynomus.gradle.plugins.jython.tasks.DownloadJythonDeps
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
-import org.gradle.util.ConfigureUtil
 
 class JythonPlugin implements Plugin<Project> {
     static final RUNTIME_SCOPE_CONFIGURATION = "jython"
