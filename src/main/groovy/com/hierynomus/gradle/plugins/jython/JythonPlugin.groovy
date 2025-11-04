@@ -77,11 +77,13 @@ class JythonPlugin implements Plugin<Project> {
     def createTasks(Project project) {
         project.tasks.create(RUNTIME_DEP_DOWNLOAD, DownloadJythonDeps).configure {
             configuration = RUNTIME_SCOPE_CONFIGURATION
+            configurationObject = project.configurations.getByName(RUNTIME_SCOPE_CONFIGURATION)
             outputDir = project.file("${project.buildDir}/jython/main")
             extension = this.extension
         }
         project.tasks.create(TEST_DEP_DOWNLOAD, DownloadJythonDeps).configure {
             configuration = TEST_SCOPE_CONFIGURATION
+            configurationObject = project.configurations.getByName(TEST_SCOPE_CONFIGURATION)
             outputDir = project.file("${project.buildDir}/jython/test")
             extension = this.extension
         }

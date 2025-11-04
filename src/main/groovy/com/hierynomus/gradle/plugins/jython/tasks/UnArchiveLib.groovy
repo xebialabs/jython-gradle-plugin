@@ -21,7 +21,9 @@ import org.apache.commons.compress.archivers.ArchiveInputStream
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
-import org.gradle.api.Project
+import org.gradle.api.file.ArchiveOperations
+import org.gradle.api.file.FileSystemOperations
+import org.gradle.api.file.FileTree
 import org.gradle.api.logging.Logging
 
 import java.nio.file.Files
@@ -29,20 +31,20 @@ import java.nio.file.Files
 class UnArchiveLib {
     static final def logger = Logging.getLogger(UnArchiveLib.class)
 
-    static def unarchive(File cachedDep, File outputDir, PythonDependency pd, Project project) {
-        def files
+    static def unarchive(File cachedDep, File outputDir, PythonDependency pd, ArchiveOperations archiveOperations, FileSystemOperations fileSystemOperations) {
+        FileTree files
         def archivePath
         if (cachedDep.name.endsWith(".zip")) {
-            files = project.zipTree(cachedDep)
+            files = archiveOperations.zipTree(cachedDep)
             archivePath = cachedDep.name - ".zip"
         } else if (cachedDep.name.endsWith(".tar.gz")) {
-            files = project.tarTree(cachedDep)
+            files = archiveOperations.tarTree(cachedDep)
             archivePath = cachedDep.name - ".tar.gz"
         }
 
         def tempDir = Files.createTempDirectory("gradle_${cachedDep.name}").toFile()
         try {
-            project.copy {
+            fileSystemOperations.copy {
                 into(tempDir)
                 includeEmptyDirs = false
                 from(files)
@@ -56,7 +58,7 @@ class UnArchiveLib {
                 if (pd.useModuleName) {
                     dir = "${dir}/${pd.moduleName}"
                 }
-                project.copy { cs ->
+                fileSystemOperations.copy { cs ->
                     cs.into dir
 
                     pd.toCopy.each { c ->
@@ -68,7 +70,7 @@ class UnArchiveLib {
                     }
                 }
             } else {
-                project.copy { cs ->
+                fileSystemOperations.copy { cs ->
                     cs.into("${outputDir}/${pd.moduleName}")
                     cs.from(new File(tempDir, pd.moduleName))
                 }

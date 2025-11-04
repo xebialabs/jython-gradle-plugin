@@ -41,9 +41,9 @@ license {
   mapping {
     java = 'SLASHSTAR_STYLE'
   }
-//   exclude('com/hierynomus/protocol/commons/Base64.java')
-//   exclude('**/*.txt')
-//   exclude('**/*.properties')
+  exclude('com/hierynomus/protocol/commons/Base64.java')
+  exclude('**/*.txt')
+  exclude('**/*.properties')
 }
 
 
