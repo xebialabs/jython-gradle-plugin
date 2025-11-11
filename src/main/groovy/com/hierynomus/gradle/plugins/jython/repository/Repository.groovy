@@ -16,7 +16,10 @@
 package com.hierynomus.gradle.plugins.jython.repository
 
 import com.hierynomus.gradle.plugins.jython.JythonExtension
+import org.apache.hc.client5.http.auth.AuthScope
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials
 import org.apache.hc.client5.http.classic.methods.HttpGet
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.apache.hc.client5.http.impl.classic.HttpClients
 import org.apache.hc.core5.http.HttpHost
@@ -106,18 +109,23 @@ abstract class Repository implements Serializable {
         return builder.build()
     }
 
-    private def configureProxy(Project project, String scheme, def builder) {
-        String proxyHost = project.property("systemProp.${scheme}.proxyHost") as String
-        int proxyPort = project.property("systemProp.${scheme}.proxyPort") as Integer
-        HttpHost proxy = new HttpHost(scheme, proxyHost, proxyPort)
+    private def configureProxy(Project project, String proxyScheme, def builder) {
+        String proxyHost = project.property("systemProp.${proxyScheme}.proxyHost") as String
+        int proxyPort = project.property("systemProp.${proxyScheme}.proxyPort") as Integer
+        HttpHost proxy = new HttpHost(proxyScheme, proxyHost, proxyPort)
         builder.setProxy(proxy)
         
-        // Note: Basic auth for proxy would require additional configuration with CredentialsProvider
-        // if (project.hasProperty("systemProp.${scheme}.proxyUsername")) {
-        //     String username = project.property("systemProp.${scheme}.proxyUsername") as String
-        //     String password = project.property("systemProp.${scheme}.proxyPassword") as String
-        //     // Would need to add CredentialsProvider setup here
-        // }
+        if (project.hasProperty("systemProp.${proxyScheme}.proxyUsername")) {
+            String username = project.property("systemProp.${proxyScheme}.proxyUsername") as String
+            String password = project.property("systemProp.${proxyScheme}.proxyPassword") as String
+            
+            BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider()
+            credentialsProvider.setCredentials(
+                new AuthScope(proxyHost, proxyPort),
+                new UsernamePasswordCredentials(username, password.toCharArray())
+            )
+            builder.setDefaultCredentialsProvider(credentialsProvider)
+        }
     }
 
     /**
