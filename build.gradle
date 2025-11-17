@@ -6,7 +6,7 @@ buildscript {
   }
   dependencies {
     classpath "com.gradle.publish:plugin-publish-plugin:1.3.1"
-    classpath "com.hierynomus.gradle.plugins:license-gradle-plugin:0.1.0-SNAPSHOT"
+    classpath "com.xebialabs.gradle.plugins:license-gradle-plugin:0.17.0"
   }
 }
 
@@ -17,10 +17,10 @@ plugins {
   id "java-gradle-plugin"
 }
 
-apply plugin: 'com.github.hierynomus.license'
+apply plugin: 'com.xebialabs.license'
 
-group = 'com.hierynomus.gradle.plugins'
-version = '0.11.0-SNAPSHOT'
+group = 'com.xebialabs.gradle.plugins'
+version = '0.12.0'
 defaultTasks 'build'
 
 java {
@@ -95,12 +95,12 @@ test {
 }
 
 gradlePlugin {
-    website = "https://github.com/hierynomus/jython-gradle-plugin"
-    vcsUrl = "https://github.com/hierynomus/jython-gradle-plugin.git"
+    website = "https://github.com/xebialabs/jython-gradle-plugin"
+    vcsUrl = "https://github.com/xebialabs/jython-gradle-plugin.git"
     plugins {
         jythonPlugin {
-            id = "com.github.hierynomus.jython"
-            displayName = "Jython plugin for Gradle"
+            id = "com.xebialabs.jython"
+            displayName = "Jython plugin for Gradle (Digital.ai fork)"
             description = "Bundle Jython/Python libraries in your JAR"
             tags.set(["jython", "python"])
             implementationClass = "com.hierynomus.gradle.plugins.jython.JythonPlugin"

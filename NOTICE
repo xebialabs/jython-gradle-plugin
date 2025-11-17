@@ -1,0 +1,17 @@
+Jython Gradle Plugin
+Copyright (C) 2025 Digital.ai
+
+This product is a fork of the original Jython Gradle Plugin created by:
+  Jeroen van Erp <jeroen@hierynomus.com>
+  Copyright (C) 2015 Jeroen van Erp
+
+Original repository: https://github.com/hierynomus/jython-gradle-plugin
+
+This fork includes modifications and enhancements made by Digital.ai,
+including but not limited to:
+  - Proxy authentication support
+  - Gradle and JDK version updates
+  - Integration with Digital.ai internal infrastructure
+
+We are grateful to Jeroen van Erp for creating and open-sourcing the original
+plugin under the Apache License 2.0, which serves as the foundation for this work.
