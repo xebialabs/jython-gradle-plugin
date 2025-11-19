@@ -6,37 +6,64 @@ Jeroen van Erp
 [link=https://travis-ci.org/hierynomus/jython-gradle-plugin]
 image::https://travis-ci.org/hierynomus/jython-gradle-plugin.svg?branch=master[]
 
+== About This Fork
+
+This repository is a fork of the original https://github.com/hierynomus/jython-gradle-plugin[jython-gradle-plugin] created and maintained by Jeroen van Erp (https://github.com/hierynomus[@hierynomus]).
+
+The original plugin was created to bundle Jython/Python libraries in JAR files for Gradle projects. This fork is maintained by Digital.ai with modifications to support internal requirements and updated dependencies.
+
+*Original Author*: Jeroen van Erp (jeroen@hierynomus.com)
+
+*Original Repository*: https://github.com/hierynomus/jython-gradle-plugin
+
+We are grateful to Jeroen van Erp for creating and maintaining the original plugin, which serves as the foundation for this fork.
 
 == Usage
-The `jython-gradle-plugin` will be published to http://bintray.com[] and will be available through the http://plugins.gradle.org/[Gradle plugin exchange]. This means that there are a few different usage scenarios listed below.
+This XebiaLabs fork is published to internal Nexus repository.
 
 Plugin version 0.10.0 and earlier can be used with Gradle 4.8.1 and earlier.
 Later plugin versions require Gradle 4.9 or newer.
 
-=== Gradle 2.1 and above
+=== Using the XebiaLabs fork
 In your `build.gradle` file add:
 
 [source,groovy,subs="verbatim,attributes"]
 ----
 plugins {
-    id "com.github.hierynomus.jython" version "{jython_plugin_version}"
+    id "com.xebialabs.jython" version "{jython_plugin_version}"
 }
 ----
 
-=== Gradle 1.x/2.0
+=== Legacy setup (Gradle 1.x/2.0)
 In your `build.gradle` file add:
 
 [source,groovy,subs="verbatim,attributes"]
 ----
     buildscript {
         repositories {
-            jcenter()
+            maven {
+                url "${nexusBaseUrl}/repositories/releases"
+                credentials {
+                    username nexusUserName
+                    password nexusPassword
+                }
+            }
         }
 
         dependencies {
-            classpath 'com.hierynomus.gradle.plugins:jython-gradle-plugin:{jython_plugin_version}'
+            classpath 'com.xebialabs.gradle.plugins:jython-gradle-plugin:{jython_plugin_version}'
         }
     }
+----
+
+=== Using the original plugin
+If you prefer to use the original hierynomus version, use:
+
+[source,groovy,subs="verbatim,attributes"]
+----
+plugins {
+    id "com.github.hierynomus.jython" version "0.10.0"
+}
 ----
 
 == Example
@@ -46,7 +73,7 @@ The following example will download the `boto3` library from `pypi.python.org` a
 ----
 plugins {
     id "java"
-    id "com.github.hierynomus.jython" version "{jython_plugin_version}"
+    id "com.xebialabs.jython" version "{jython_plugin_version}"
 }
 
 dependencies {

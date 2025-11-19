@@ -1,5 +1,6 @@
 /*
- * Copyright (C)2015 - Jeroen van Erp <jeroen@hierynomus.com>
+ * Copyright (C) 2015 Jeroen van Erp <jeroen@hierynomus.com>
+ * Copyright (C) 2025 Digital.ai
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +21,17 @@ import com.hierynomus.gradle.plugins.jython.dependency.PythonDependency
 import com.hierynomus.gradle.plugins.jython.repository.Repository
 import org.apache.commons.compress.archivers.ArchiveInputStream
 import org.gradle.api.DefaultTask
+import org.gradle.api.artifacts.Configuration
 import org.gradle.api.artifacts.DependencyArtifact
 import org.gradle.api.artifacts.ExternalModuleDependency
+import org.gradle.api.file.ArchiveOperations
+import org.gradle.api.file.FileSystemOperations
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
+
+import javax.inject.Inject
 
 class DownloadJythonDeps extends DefaultTask {
 
@@ -38,9 +44,27 @@ class DownloadJythonDeps extends DefaultTask {
     @OutputDirectory
     File outputDir
 
+    @Internal
+    Configuration configurationObject
+
+    private final ArchiveOperations archiveOperations
+    private final FileSystemOperations fileSystemOperations
+
+    @Inject
+    DownloadJythonDeps(ArchiveOperations archiveOperations, FileSystemOperations fileSystemOperations) {
+        this.archiveOperations = archiveOperations
+        this.fileSystemOperations = fileSystemOperations
+    }
+
     @TaskAction
     def process() {
-        project.configurations.getByName(configuration).allDependencies.withType(ExternalModuleDependency.class)*.each { d ->
+        // Use the configuration object that was captured during configuration time
+        def config = configurationObject ?: project.configurations.getByName(configuration)
+        // Store references outside closure to avoid property access issues
+        def archOps = this.archiveOperations
+        def fileOps = this.fileSystemOperations
+        
+        config.allDependencies.withType(ExternalModuleDependency.class)*.each { d ->
             String name = d.name
             logger.lifecycle("Downloading Jython library: $name with version ${d.version}")
             boolean found = false
@@ -58,7 +82,7 @@ class DownloadJythonDeps extends DefaultTask {
                         }
                     } else {
                         PythonDependency pd = d as PythonDependency
-                        UnArchiveLib.unarchive(cachedDep, outputDir, pd, project)
+                        UnArchiveLib.unarchive(cachedDep, outputDir, pd, archOps, fileOps)
                     }
                 }
 

@@ -1,5 +1,6 @@
 /*
- * Copyright (C)2015 - Jeroen van Erp <jeroen@hierynomus.com>
+ * Copyright (C) 2015 Jeroen van Erp <jeroen@hierynomus.com>
+ * Copyright (C) 2025 Digital.ai
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +21,6 @@ import com.hierynomus.gradle.plugins.jython.tasks.DownloadJythonDeps
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
-import org.gradle.util.ConfigureUtil
 
 class JythonPlugin implements Plugin<Project> {
     static final RUNTIME_SCOPE_CONFIGURATION = "jython"
@@ -78,11 +78,13 @@ class JythonPlugin implements Plugin<Project> {
     def createTasks(Project project) {
         project.tasks.create(RUNTIME_DEP_DOWNLOAD, DownloadJythonDeps).configure {
             configuration = RUNTIME_SCOPE_CONFIGURATION
+            configurationObject = project.configurations.getByName(RUNTIME_SCOPE_CONFIGURATION)
             outputDir = project.file("${project.buildDir}/jython/main")
             extension = this.extension
         }
         project.tasks.create(TEST_DEP_DOWNLOAD, DownloadJythonDeps).configure {
             configuration = TEST_SCOPE_CONFIGURATION
+            configurationObject = project.configurations.getByName(TEST_SCOPE_CONFIGURATION)
             outputDir = project.file("${project.buildDir}/jython/test")
             extension = this.extension
         }

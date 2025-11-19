@@ -1,5 +1,6 @@
 /*
- * Copyright (C)2015 - Jeroen van Erp <jeroen@hierynomus.com>
+ * Copyright (C) 2015 Jeroen van Erp <jeroen@hierynomus.com>
+ * Copyright (C) 2025 Digital.ai
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +17,13 @@
 package com.hierynomus.gradle.plugins.jython.repository
 
 import com.hierynomus.gradle.plugins.jython.JythonExtension
-import groovyx.net.http.HTTPBuilder
-import groovyx.net.http.Method
+import org.apache.hc.client5.http.auth.AuthScope
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials
+import org.apache.hc.client5.http.classic.methods.HttpGet
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
+import org.apache.hc.client5.http.impl.classic.HttpClients
+import org.apache.hc.core5.http.HttpHost
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.logging.Logger
@@ -32,33 +38,54 @@ abstract class Repository implements Serializable {
         if (!cachedArtifact) {
             String url = getReleaseUrl(extension, dep)
             if (url) {
-                logger.info("Downloading :${dep.name}:${dep.version} from $url")
+                logger.lifecycle("Downloading :${dep.name}:${dep.version} from $url")
 
-                def http = newHTTPBuilder(extension, url)
-                http.request(Method.GET) {
-                    response.success = { resp, body ->
-                        this.logger.debug "Got response: ${resp.statusLine}"
-                        this.logger.debug "Response length: ${resp.getFirstHeader('Content-Length')}"
-                        if (uri.path.endsWith(".zip")) {
-                            cachedArtifact = new File(cachePath, artifactName(dep) + ".zip")
-                        } else if (uri.path.endsWith(".tar.gz")) {
-                            cachedArtifact = new File(cachePath, artifactName(dep) + ".tar.gz")
+                CloseableHttpClient httpClient = createHttpClient(extension)
+                try {
+                    HttpGet request = new HttpGet(url)
+                    File resultFile = httpClient.execute(request, response -> {
+                        int statusCode = response.getCode()
+                        logger.lifecycle("Got HTTP response: ${statusCode} for url: $url")
+                        
+                        if (statusCode >= 200 && statusCode < 300) {
+                            File targetFile
+                            if (url.endsWith(".zip")) {
+                                targetFile = new File(cachePath, artifactName(dep) + ".zip")
+                            } else if (url.endsWith(".tar.gz")) {
+                                targetFile = new File(cachePath, artifactName(dep) + ".tar.gz")
+                            } else {
+                                throw new IllegalArgumentException("Unknown Python artifact extension: $url for dependency $dep")
+                            }
+                            
+                            if (!targetFile.getParentFile().exists()) {
+                                targetFile.getParentFile().mkdirs()
+                            }
+                            
+                            targetFile.withOutputStream { os ->
+                                def is = new BufferedInputStream(response.getEntity().getContent())
+                                os << is
+                                is.close()
+                            }
+                            
+                            logger.lifecycle("Successfully downloaded to: ${targetFile.absolutePath}")
+                            return targetFile
                         } else {
-                            throw new IllegalArgumentException("Unknown Python artifact extension: $url for dependency $dep")
+                            logger.lifecycle("Non-success status code ${statusCode} for url: $url, trying next repository...")
+                            return null
                         }
-                        if (!cachedArtifact.getParentFile().exists()) {
-                            cachedArtifact.getParentFile().mkdirs()
-                        }
-                        cachedArtifact.withOutputStream { os ->
-                            def is = new BufferedInputStream(body as InputStream)
-                            os << is
-                            is.close()
-                        }
+                    })
+                    
+                    if (resultFile) {
+                        cachedArtifact = resultFile
                     }
-                    response.failure = { resp, body ->
-                        logger.debug("Got response: ${resp.statusLine} for url: $url, trying next...")
-                    }
+                } catch (Exception e) {
+                    logger.lifecycle("Failed to download from $url: ${e.class.name}: ${e.message}")
+                    logger.debug("Full stack trace:", e)
+                } finally {
+                    httpClient.close()
                 }
+            } else {
+                logger.lifecycle("No URL returned by getReleaseUrl for :${dep.name}:${dep.version}")
             }
         } else {
             logger.info("Using cached artifact $cachedArtifact for depedency :${dep.name}:${dep.version}")
@@ -66,25 +93,39 @@ abstract class Repository implements Serializable {
         return cachedArtifact
     }
 
-    HTTPBuilder newHTTPBuilder(JythonExtension extension, String url) {
-        def http = new HTTPBuilder(url)
+    CloseableHttpClient createHttpClient(JythonExtension extension) {
+        def builder = HttpClients.custom()
+                .setDefaultRequestConfig(org.apache.hc.client5.http.config.RequestConfig.custom()
+                        .setRedirectsEnabled(true)
+                        .build())
+        
         def p = extension.project
+        
         if (p.hasProperty("systemProp.http.proxyHost")) {
-            configureProxy(p, "http", http)
+            configureProxy(p, "http", builder)
         } else if (p.hasProperty("systemProp.https.proxyHost")) {
-            configureProxy(p, "https", http)
+            configureProxy(p, "https", builder)
         }
-        return http
+        
+        return builder.build()
     }
 
-    private def configureProxy(Project project, String scheme, HTTPBuilder http) {
-        String proxyHost = project.property("systemProp.${scheme}.proxyHost") as String
-        int proxyPort = project.property("systemProp.${scheme}.proxyPort") as Integer
-        http.setProxy(proxyHost, proxyPort, scheme)
-        if (project.hasProperty("systemProp.${scheme}.proxyUsername")) {
-            String username = project.property("systemProp.${scheme}.proxyUsername") as String
-            String password = project.property("systemProp.${scheme}.proxyPassword") as String
-            http.auth.basic(proxyHost, proxyPort, username, password)
+    private def configureProxy(Project project, String proxyScheme, def builder) {
+        String proxyHost = project.property("systemProp.${proxyScheme}.proxyHost") as String
+        int proxyPort = project.property("systemProp.${proxyScheme}.proxyPort") as Integer
+        HttpHost proxy = new HttpHost(proxyScheme, proxyHost, proxyPort)
+        builder.setProxy(proxy)
+        
+        if (project.hasProperty("systemProp.${proxyScheme}.proxyUsername")) {
+            String username = project.property("systemProp.${proxyScheme}.proxyUsername") as String
+            String password = project.property("systemProp.${proxyScheme}.proxyPassword") as String
+            
+            BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider()
+            credentialsProvider.setCredentials(
+                new AuthScope(proxyHost, proxyPort),
+                new UsernamePasswordCredentials(username, password.toCharArray())
+            )
+            builder.setDefaultCredentialsProvider(credentialsProvider)
         }
     }
 

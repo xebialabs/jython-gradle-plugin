@@ -1,5 +1,6 @@
 /*
- * Copyright (C)2015 - Jeroen van Erp <jeroen@hierynomus.com>
+ * Copyright (C) 2015 Jeroen van Erp <jeroen@hierynomus.com>
+ * Copyright (C) 2025 Digital.ai
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,11 +17,11 @@
 package com.hierynomus.gradle.plugins.jython.repository
 
 import com.hierynomus.gradle.plugins.jython.JythonExtension
+import groovy.json.JsonSlurper
 import groovy.text.SimpleTemplateEngine
 import groovy.text.Template
-import groovyx.net.http.ContentType
-import groovyx.net.http.HTTPBuilder
-import groovyx.net.http.Method
+import org.apache.hc.client5.http.classic.methods.HttpGet
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient
 import org.gradle.api.artifacts.ExternalModuleDependency
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
@@ -46,20 +47,31 @@ class PypiRepository extends Repository {
     String getReleaseUrl(JythonExtension extension, ExternalModuleDependency dep) {
         String queryUrl = template.make(['dep': dep]).toString()
         logger.debug("Querying PyPI: $queryUrl")
-        def queryHttp = newHTTPBuilder(extension, queryUrl)
-        queryHttp.request(Method.GET, ContentType.JSON) {
-            response.success = { resp, json ->
-                if (json.releases) {
-                    def release_urls = json.releases[dep.version]
-                    if (release_urls) {
-                        for (u in release_urls) {
-                            if (u['python_version'] == 'source') {
-                                return u['url']
+        
+        CloseableHttpClient httpClient = createHttpClient(extension)
+        try {
+            HttpGet request = new HttpGet(queryUrl)
+            return httpClient.execute(request, response -> {
+                int statusCode = response.getCode()
+                if (statusCode >= 200 && statusCode < 300) {
+                    def jsonSlurper = new JsonSlurper()
+                    def json = jsonSlurper.parse(response.getEntity().getContent())
+                    
+                    if (json.releases) {
+                        def release_urls = json.releases[dep.version]
+                        if (release_urls) {
+                            for (u in release_urls) {
+                                if (u['python_version'] == 'source') {
+                                    return u['url']
+                                }
                             }
                         }
                     }
                 }
-            }
+                return null
+            })
+        } finally {
+            httpClient.close()
         }
     }
 
