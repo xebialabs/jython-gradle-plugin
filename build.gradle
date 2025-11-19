@@ -1,8 +1,16 @@
 // First, apply the publishing plugin
 buildscript {
   repositories {
-    mavenLocal()
     mavenCentral()
+    ["releases", "public"].each { r ->
+            maven {
+                url "${nexusBaseUrl}/repositories/${r}"
+                credentials {
+                    username nexusUserName
+                    password nexusPassword
+                }
+            }
+        }
   }
   dependencies {
     classpath "com.gradle.publish:plugin-publish-plugin:1.3.1"
